@@ -8,6 +8,7 @@ call plug#begin()
 	Plug 'nvim-treesitter/nvim-treesitter'
 	Plug 'rust-lang/rust.vim'
 	Plug 'chentoast/marks.nvim'
+	Plug 'ThePrimeagen/harpoon'
 call plug#end()
 set shell=/bin/bash
 
