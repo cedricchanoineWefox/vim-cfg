@@ -4,11 +4,28 @@ call plug#begin()
 	Plug 'morhetz/gruvbox'
 	Plug 'Xuyuanp/nerdtree-git-plugin'
 	Plug 'nvim-telescope/telescope.nvim'
+	Plug 'gioele/vim-autoswap'
 	Plug 'junnplus/lsp-setup.nvim'
 	Plug 'nvim-treesitter/nvim-treesitter'
 	Plug 'rust-lang/rust.vim'
 	Plug 'chentoast/marks.nvim'
 	Plug 'ThePrimeagen/harpoon'
+  	Plug 'nvim-lua/popup.nvim'
+  	Plug 'nvim-lua/plenary.nvim'
+  	Plug 'nvim-telescope/telescope.nvim'
+	Plug 'mbbill/undotree'
+	Plug 'neovim/nvim-lspconfig'
+	Plug 'williamboman/mason.nvim'
+	Plug 'williamboman/mason-lspconfig.nvim'
+	Plug 'hrsh7th/nvim-cmp'
+	Plug 'hrsh7th/cmp-buffer'
+	Plug 'hrsh7th/cmp-path'
+	Plug 'saadparwaiz1/cmp_luasnip'
+	Plug 'hrsh7th/cmp-nvim-lsp'
+	Plug 'hrsh7th/cmp-nvim-lua'
+	Plug 'L3MON4D3/LuaSnip'
+	Plug 'rafamadriz/friendly-snippets'
+	Plug 'simrat39/inlay-hints.nvim'
 call plug#end()
 set shell=/bin/bash
 
@@ -19,9 +36,16 @@ set cursorline
 set number
 set nobackup
 let mapleader = " "
-noremap <leader>r :RustFmt<CR>
+
+au Filetype rust noremap <leader>r :RustFmt<CR>
+au Filetype json noremap <leader>r :%!python3 -m json.tool<CR>
+au Filetype sql noremap <leader>r :%!python3 -m sql-formatter<CR>
+
+
 nnoremap <leader>f :NERDTreeToggle<CR>
 nnoremap <leader>c :e $MYVIMRC<CR>
+nnoremap <leader>g :NERDTreeFind<CR>
+nnoremap <leader>h :NERDTreeCWD<CR>
 "nnoremap <leader>h :tabnext<CR>
 "nnoremap <leader>l :tabprevious<CR>
 nnoremap <C-h> <C-w>h
@@ -31,11 +55,14 @@ nnoremap <C-k> <C-w>k
 
 map <TAB> :BufExplorer<CR><ESC>
 map <c-P> :Telescope find_files hidden=true<CR>
-map <c-G> :Telescope git_files<CR>
-map <F1> :Telescope live_grep<CR>
+map <c-G> :Telescope git_status<CR>
+map <F1> :Telescope live_grep glob_pattern=!*.{py,lock,ini}<CR>
+map <F2> :Telescope live_grep<CR>
 map <c-B> :Telescope buffers<CR>
 syntax enable
 filetype plugin indent on
+"nnoremap <F1> <cmd>lua require('telescope.builtin').live_grep()<cr>
+
 " jonhoo
 nnoremap j gj
 nnoremap k gk
@@ -43,6 +70,8 @@ set incsearch
 set ignorecase
 set smartcase
 set gdefault
+
+nnoremap <F5> :UndotreeToggle<CR>
 
 " Search results centered please
 nnoremap <silent> n nzz
@@ -57,81 +86,45 @@ syntax on
 
 lua << EOF
 
+local lspconfig = require('lspconfig')
+lspconfig.pyright.setup {}
+lspconfig.tsserver.setup {}
+lspconfig.rust_analyzer.setup {
+  -- Server-specific settings. See `:help lspconfig-setup`
+  settings = {
+    ['rust-analyzer'] = {
+ 	procMacro = {
+        enable = false
+        },
+	    },
+  },
+}
+local ih = require("inlay-hints")
+
+require("rust-tools").setup({
+  tools = {
+    on_initialized = function()
+      ih.set_all()
+    end,
+    inlay_hints = {
+      auto = false,
+    },
+  },
+  server = {
+    on_attach = function(c, b)
+      ih.on_attach(c, b)
+    end,
+  },
+})
+
+require("inlay-hints").setup()
 -- CHARGEMENT DES PLUGINS
 
-local ensure_packer = function()
-  local fn = vim.fn
-  local install_path = fn.stdpath("data") .. "/site/pack/packer/start/packer.nvim"
-  if fn.empty(fn.glob(install_path)) > 0 then
-    fn.system({ "git", "clone", "--depth", "1", "https://github.com/wbthomason/packer.nvim", install_path })
-    vim.cmd([[packadd packer.nvim]])
-    return true
-  end
-  return false
-end
-
-local packer_bootstrap = ensure_packer()
-
-require("packer").startup(function(use)
-  -- Packer can manage itself
-  use("wbthomason/packer.nvim")
-  -- Collection of common configurations for the Nvim LSP client
-  use("neovim/nvim-lspconfig")
-  -- Visualize lsp progress
-  use({
-    "j-hui/fidget.nvim",
-    config = function()
-      require("fidget").setup()
-    end
-  })
-
-  -- Autocompletion framework
-  use("hrsh7th/nvim-cmp")
-  use({
-    -- cmp LSP completion
-    "hrsh7th/cmp-nvim-lsp",
-    -- cmp Snippet completion
-    "hrsh7th/cmp-vsnip",
-    -- cmp Path completion
-    "hrsh7th/cmp-path",
-    "hrsh7th/cmp-buffer",
-    after = { "hrsh7th/nvim-cmp" },
-    requires = { "hrsh7th/nvim-cmp" },
-  })
-  -- See hrsh7th other plugins for more great completion sources!
-  -- Snippet engine
-  use('hrsh7th/vim-vsnip')
-  -- Adds extra functionality over rust analyzer
-  use("simrat39/rust-tools.nvim")
-
-  -- Optional
-  use("nvim-lua/popup.nvim")
-  use("nvim-lua/plenary.nvim")
-  use("nvim-telescope/telescope.nvim")
-
-  -- Some color scheme other then default
-  use("arcticicestudio/nord-vim")
-end)
-
--- the first run will install packer and our plugins
-if packer_bootstrap then
-  require("packer").sync()
-  return
-end
-
--- CONFIG
-
 -- vim.o.completeopt = "menuone,noinsert,noselect"
- vim.o.completeopt = "menu,menuone,noselect"
+vim.o.completeopt = "menu,menuone,noselect"
 
 -- Avoid showing extra messages when using completion
 vim.opt.shortmess = vim.opt.shortmess + "c"
-
-local function on_attach(client, buffer)
-  -- This callback is called when the LSP is atttached/enabled for this buffer
-  -- we could set keymaps related to LSP, etc here.
-
-end
 
 -- Configure LSP through rust-tools.nvim plugin.
 -- rust-tools will configure and enable certain LSP features for us.
@@ -141,12 +134,10 @@ local opts = {
     runnables = {
       use_telescope = true,
     },
-    inlay_hints = {
-      auto = true,
-      show_parameter_hints = true,
-      parameter_hints_prefix = "",
-      other_hints_prefix = "",
-    },
+    -- inlay_hints = {
+      -- auto = true,
+      sh-- ow_parameter_hints = true,
+    -- },
   },
 }
 
@@ -185,10 +176,6 @@ cmp.setup.cmdline(':', {
     { name = 'path' }
   })
 })
-
-
-require("rust-tools").setup(opts)
-
 
 -- Setup Completion
 -- See https://github.com/hrsh7th/nvim-cmp#basic-configuration
@@ -244,5 +231,13 @@ require'marks'.setup {
   },
   mappings = {}
 }
-
 EOF
+
+hi Normal guibg=none ctermbg=none
+hi LineNr guibg=none ctermbg=none
+hi Folded guibg=none ctermbg=none
+hi NonText guibg=none ctermbg=none
+hi SpecialKey guibg=none ctermbg=none
+hi VertSplit guibg=none ctermbg=none
+hi SignColumn guibg=none ctermbg=none
+hi EndOfBuffer guibg=none ctermbg=none
