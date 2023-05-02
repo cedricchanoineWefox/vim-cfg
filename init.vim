@@ -1,4 +1,5 @@
 call plug#begin()
+	Plug 'tpope/vim-fugitive'
 	Plug 'preservim/nerdtree'
 	Plug 'jlanzarotta/bufexplorer'
 	Plug 'morhetz/gruvbox'
@@ -37,9 +38,6 @@ set number
 set nobackup
 let mapleader = " "
 
-au Filetype rust noremap <leader>r :RustFmt<CR>
-au Filetype json noremap <leader>r :%!python3 -m json.tool<CR>
-au Filetype sql noremap <leader>r :%!python3 -m sql-formatter<CR>
 
 
 nnoremap <leader>f :NERDTreeToggle<CR>
@@ -231,7 +229,32 @@ require'marks'.setup {
   },
   mappings = {}
 }
+
+--LINTING
+
+function FormatMyFile()
+    local filetype = vim.bo.filetype
+    if filetype == "rust" then
+	    vim.cmd(":RustFmt")
+    elseif filetype == "json" then
+	    vim.cmd(":%!python3 -m json.tool")
+    elseif filetype == "sql" then
+	    SqlFormat()
+	else 
+	print("no formatters for this format")
+	end
+end
+
+function SqlFormat()
+	local exit_code = vim.fn.system(cmd)
+end
+
 EOF
+"au Filetype rust noremap <leader>r :RustFmt<CR>
+"au Filetype json noremap <leader>r :%!python3 -m json.tool<CR>
+"au Filetype sql noremap <leader>r :%!python3 -m sql-formatter<CR>
+
+nnoremap <leader>r :lua FormatMyFile()<CR>
 
 hi Normal guibg=none ctermbg=none
 hi LineNr guibg=none ctermbg=none
